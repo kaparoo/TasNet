@@ -3,11 +3,11 @@ class TasNetParam:
     __slots__ = 'K', 'C', 'L', 'N', 'H', 'causal'
 
     def __init__(self,
-                 K: int,
-                 C: int,
-                 L: int,
-                 N: int,
-                 H: int,
+                 K: int = 20,
+                 C: int = 4,
+                 L: int = 40,
+                 N: int = 500,
+                 H: int = 1000,
                  causal: bool = False):
         self.K = K
         self.C = C
