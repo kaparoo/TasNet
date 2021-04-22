@@ -5,6 +5,12 @@
 !.vscode/extensions.json
 *.code-workspace
 
+# train
+train*/
+
+# predict
+*.wav
+
 # Local History for Visual Studio Code
 .history/
 

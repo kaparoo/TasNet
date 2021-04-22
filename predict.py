@@ -34,8 +34,9 @@ def main(argv):
     checkpoints.sort()
     checkpoint_name = checkpoints[-1].split(".")[0]
 
-    tasnet_param = TasNetParam.load(f"{checkpoint_dir}/config.txt")
-    tasnet = TasNet.make(tasnet_param)
+    param = TasNetParam.load(f"{checkpoint_dir}/config.txt")
+    print(param.get_config)
+    tasnet = TasNet.make(param)
     tasnet.load_weights(f"{checkpoint_dir}/{checkpoint_name}.ckpt")
 
     video_id = FLAGS.video_id
@@ -60,24 +61,17 @@ def main(argv):
     audio, sr = librosa.load(filename, sr=44100, mono=True)
 
     num_samples = audio.shape[0]
-    num_portions = num_samples // (tasnet_param.K * tasnet_param*L)
-    num_samples = num_portions * tasnet_param.K * tasnet_param.L
+    num_portions = num_samples // (param.K * param.L)
+    num_samples = num_portions * (param.K * param.L)
 
     print("predicting...")
 
     audio = audio[:num_samples]
-    tasnet_input = np.zeros((num_portions, tasnet_param.K, tasnet_param.L))
+    audio = np.reshape(audio, [num_portions, param.K, param.L])
 
-    for i in range(num_portions):
-        for j in range(tasnet_param.K):
-            begin = (i * tasnet_param.K + j) * tasnet_param.L
-            end = begin + tasnet_param.L
-            tasnet_input[i][j] = audio[begin:end]
-
-    separated = tasnet.predict(tasnet_input)
+    separated = tasnet.predict(audio)
     separated = np.transpose(separated, (1, 0, 2, 3))
-    separated = separated[:, :, :, :tasnet_param.L]
-    separated = np.reshape(separated, (tasnet_param.C, num_samples))
+    separated = np.reshape(separated, (param.C, num_samples))
 
     print("saving...")
 
