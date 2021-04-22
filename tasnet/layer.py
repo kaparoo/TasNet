@@ -64,7 +64,8 @@ class Separator(tf.keras.layers.Layer):
         # -> (, K, N*C)
         fc_outputs = self.fc_layer(lstm6_outputs)
         # (, K, N*C) -> (, K, C, N)
-        source_masks = self.softmax(self.make_mask(fc_outputs))
+        source_masks = self.make_mask(fc_outputs)
+        source_masks = self.softmax(fc_outputs)
 
         # (, K, N) -> (, K, N*C)
         mixture_weights = self.concat_weights(
