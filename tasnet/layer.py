@@ -4,10 +4,14 @@ from .param import TasNetParam
 
 
 class Encoder(tf.keras.layers.Layer):
-    def __init__(self, param: TasNetParam, name='Encoder', **kwargs):
-        super(Encoder, self).__init__(name=name, **kwargs)
-        self.U = tf.keras.layers.Conv1D(param.N, 1, activation='relu')
-        self.V = tf.keras.layers.Conv1D(param.N, 1, activation='sigmoid')
+    def __init__(self, param: TasNetParam, **kwargs):
+        super(Encoder, self).__init__(name='Encoder', **kwargs)
+        self.U = tf.keras.layers.Conv1D(filters=param.N,
+                                        kernel_size=1,
+                                        activation='relu')
+        self.V = tf.keras.layers.Conv1D(filters=param.N,
+                                        kernel_size=1,
+                                        activation='sigmoid')
         self.gating = tf.keras.layers.Multiply()
 
     def call(self, mixture_segments):
@@ -15,9 +19,19 @@ class Encoder(tf.keras.layers.Layer):
         return self.gating([self.U(mixture_segments), self.V(mixture_segments)])
 
 
+class Decoder(tf.keras.layers.Layer):
+    def __init__(self, param: TasNetParam, **kwargs):
+        super(Decoder, self).__init__(name='Decoder', **kwargs)
+        self.B = tf.keras.layers.Dense(param.L)
+
+    def call(self, source_weights):
+        # (, C, K, N) -> (, C, K, L)
+        return self.B(source_weights)
+
+
 class Separator(tf.keras.layers.Layer):
-    def __init__(self, param: TasNetParam, name='Separation', **kwargs):
-        super(Separator, self).__init__(name=name, **kwargs)
+    def __init__(self, param: TasNetParam, **kwargs):
+        super(Separator, self).__init__(name='Separation', **kwargs)
 
         self.layer_normalization = tf.keras.layers.LayerNormalization()
         self.C = param.C
@@ -41,18 +55,21 @@ class Separator(tf.keras.layers.Layer):
 
         self.fc_layer = tf.keras.layers.Dense(param.N * param.C)
         self.reshape_mask = tf.keras.layers.Reshape(
-            [param.K, param.C, param.N])
+            target_shape=[param.K, param.C, param.N])
         self.softmax = tf.keras.layers.Softmax(axis=-2)  # axis: C
 
-        self.concat_weights = tf.keras.layers.concatenate  # function
+        self.concat_weights = tf.keras.layers.concatenate
         self.reshape_weights = tf.keras.layers.Reshape(
-            [param.K, param.C, param.N])
+            target_shape=[param.K, param.C, param.N])
 
         self.apply_mask = tf.keras.layers.Multiply()
+        self.permute = tf.keras.layers.Permute([2, 1, 3])
 
     def call(self, mixture_weights):
+        # (, K, N) -> (, K, N)
         normalized_weights = self.layer_normalization(mixture_weights)
 
+        # (, K, N) -> (, K, H)
         lstm1_outputs = self.lstm1(normalized_weights)
         lstm2_outputs = self.lstm2(lstm1_outputs)
         lstm3_outputs = self.lstm3(lstm2_outputs)
@@ -62,31 +79,25 @@ class Separator(tf.keras.layers.Layer):
         lstm6_outputs = self.lstm6(lstm5_outputs)
         lstm6_outputs = self.skip_connection([lstm4_outputs, lstm6_outputs])
 
-        # -> (, K, N*C)
+        # (, K, H) -> (, K, C*N)
         fc_outputs = self.fc_layer(lstm6_outputs)
-        # (, K, N*C) -> (, K, C, N)
+
+        # (, K, C*N) -> (, K, C, N)
         source_masks = self.reshape_mask(fc_outputs)
         # (, K, C, N) -> (, K, N*c)
         source_masks = self.softmax(fc_outputs)
-        # (, K, N*C) -> (, K, C, N)
+        # (, K, C*N) -> (, K, C, N)
         source_masks = self.reshape_mask(fc_outputs)
 
-        # (, K, N) -> (, K, N*C)
+        # (, K, N) -> (, K, C*N)
         mixture_weights = self.concat_weights(
             [mixture_weights for _ in range(self.C)], axis=-1)
-
-        # (, K, N*C) -> (, K, C, N)
+        # (, K, C*N) -> (, K, C, N)
         mixture_weights = self.reshape_weights(mixture_weights)
 
-        return self.apply_mask([mixture_weights, source_masks])
+        # (, K, C, N), (, K, C, N) -> (, K, C, N)
+        source_weights = self.apply_mask([mixture_weights, source_masks])
+        # (, K, C, N) -> (, C, K, N)
+        source_weights = self.permute(source_weights)
 
-
-class Decoder(tf.keras.layers.Layer):
-    def __init__(self, param: TasNetParam, name='Decoder', **kwargs):
-        super(Decoder, self).__init__(name=name, **kwargs)
-        self.decode = tf.keras.layers.Dense(param.L)
-        self.permute = tf.keras.layers.Permute([2, 1, 3])
-
-    def call(self, source_weights):
-        # (, K, C, N) -> (, C, K, L)
-        return self.permute(self.decode(source_weights))
+        return source_weights
