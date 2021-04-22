@@ -7,7 +7,6 @@ from .loss import SDR
 class TasNet(tf.keras.Model):
     def __init__(self, param: TasNetParam, **kwargs):
         super(TasNet, self).__init__(**kwargs)
-        self.name = 'TasNet'
         self.encode = Encoder(param)
         self.separate = Separator(param)
         self.decode = Decoder(param)

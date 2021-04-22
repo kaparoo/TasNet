@@ -40,8 +40,9 @@ class Separator(tf.keras.layers.Layer):
         self.skip_connection = tf.keras.layers.Add()
 
         self.fc_layer = tf.keras.layers.Dense(param.N * param.C)
-        self.make_mask = tf.keras.layers.Reshape([param.K, param.C, param.N])
-        self.softmax = tf.keras.layers.Softmax(axis=-2)
+        self.reshape_mask = tf.keras.layers.Reshape(
+            [param.K, param.C, param.N])
+        self.softmax = tf.keras.layers.Softmax(axis=-2)  # axis: C
 
         self.concat_weights = tf.keras.layers.concatenate  # function
         self.reshape_weights = tf.keras.layers.Reshape(
@@ -64,12 +65,16 @@ class Separator(tf.keras.layers.Layer):
         # -> (, K, N*C)
         fc_outputs = self.fc_layer(lstm6_outputs)
         # (, K, N*C) -> (, K, C, N)
-        source_masks = self.make_mask(fc_outputs)
+        source_masks = self.reshape_mask(fc_outputs)
+        # (, K, C, N) -> (, K, N*c)
         source_masks = self.softmax(fc_outputs)
+        # (, K, N*C) -> (, K, C, N)
+        source_masks = self.reshape_mask(fc_outputs)
 
         # (, K, N) -> (, K, N*C)
         mixture_weights = self.concat_weights(
             [mixture_weights for _ in range(self.C)], axis=-1)
+
         # (, K, N*C) -> (, K, C, N)
         mixture_weights = self.reshape_weights(mixture_weights)
 

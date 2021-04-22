@@ -45,7 +45,7 @@ class DecodedTrack:
 
 class Dataset:
 
-    STEMS = 'vocal', 'drum', 'bass', 'other'
+    STEMS = 'vocals', 'drums', 'bass', 'other'
 
     def __init__(self, param: DatasetParam, musdb_subsets: str = 'train', max_decoded: int = 100, **kwargs):
         if max_decoded < 1:
@@ -102,11 +102,11 @@ class Dataset:
                 track = self.decoded[random.choice(indices)]
                 start = random.randint(0, track.length - duration)
 
-                for j in range(self.param.num_fragments):
+                for j in range(self.param.num_segments):
                     left = i * 2
                     right = left + 1
-                    begin = start + j * self.param.len_fragment
-                    end = begin + self.param.len_fragment
+                    begin = start + j * self.param.len_segment
+                    end = begin + self.param.len_segment
                     x_batch[left][j] = track.mixed[0][begin:end]
                     x_batch[right][j] = track.mixed[1][begin:end]
 
