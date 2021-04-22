@@ -23,3 +23,37 @@ class TasNetParam:
                 'N': self.N,
                 'H': self.H,
                 'causal': self.causal}
+
+    def save(self, path: str):
+        with open(path, "w", encoding="utf8") as f:
+            f.write('\n'.join(f"{key}={value}" for key,
+                              value in self.get_config().items()))
+
+    @staticmethod
+    def load(path: str):
+        def convert_num(value):
+            for t in [int, float]:
+                try:
+                    return t(value)
+                except:
+                    pass
+            return value
+
+        def conver_bool(value):
+            if value == 'True':
+                return True
+            elif value == 'False':
+                return False
+            else:
+                return value
+
+        def convert_tup(tup):
+            if tup[0] == "causal":
+                return (tup[0], conver_bool(tup[1]))
+            else:
+                return (tup[0], convert_num(tup[1]))
+
+        with open(path, "r", encoding="utf8") as f:
+            d = dict(convert_tup(line.strip().split('='))
+                     for line in f.readlines())
+            return TasNetParam(**d)

@@ -59,6 +59,8 @@ def main(argv):
         epoch += 1
         if left_epochs != None:
             left_epochs -= 1
+        tasnet.param.save(f"{checkpoint_dir}/config.txt")
+        tasnet.save(f"{checkpoint_dir}/model")
 
 
 if __name__ == '__main__':
