@@ -1,11 +1,3 @@
-# primary license
-# Copyright (c) 2021 Chanjung Kim. All rights reserved.
-# Licensed under the MIT License.
-
-# secondary license
-# Copyright (c) 2021 Jaewoo Park. All rights reserved.
-# Licensed under the MIT License.
-
 class TasNetParam:
 
     __slots__ = 'K', 'C', 'L', 'N', 'H', 'causal'

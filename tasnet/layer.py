@@ -1,6 +1,3 @@
-# Copyright (c) 2021 Jaewoo Park. All rights reserved.
-# Licensed under the MIT License.
-
 import tensorflow as tf
 from tensorflow.keras.layers import LSTM, Bidirectional
 from .param import TasNetParam
