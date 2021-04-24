@@ -4,6 +4,20 @@ from .param import TasNetParam
 
 
 class Encoder(tf.keras.layers.Layer):
+    """Encoder for mixture weight calculation (Lou et al., 2018).
+
+    Attributes:
+        U: 1-D Convolution layer that learns N vectors with length L
+           with `relu` activation.
+        V: 1-D Convolution layer that learns N vectors with lenght L
+           with `sigmoid` activation.
+        gating: Elementwise muliplication layer that multiply
+                results of U and V elementwisely for `gating mechanism`.
+
+        * N: Number of basis signals of the TasNet.
+        * L: Length of each segment in input mixtures of the TasNet.
+    """
+
     def __init__(self, param: TasNetParam, **kwargs):
         super(Encoder, self).__init__(name='Encoder', **kwargs)
         self.U = tf.keras.layers.Conv1D(filters=param.N,
@@ -15,21 +29,68 @@ class Encoder(tf.keras.layers.Layer):
         self.gating = tf.keras.layers.Multiply()
 
     def call(self, mixture_segments):
-        # (, K, L) -> (, K, N)
+        """Calculates mixture weight for each mixture segment.
+
+        Args:
+            mixture_segments:
+                Input segments of the original mixture x(t).
+                tf.Tensor of shape=(, K, L)
+
+        Returns:
+            mixture_weights:
+                Calculated weights corresponding to the segments.
+                tf.Tensor of shape=(, K, N)
+        """
         return self.gating([self.U(mixture_segments), self.V(mixture_segments)])
 
 
 class Decoder(tf.keras.layers.Layer):
+    """Decoder for waveform reconstruction (Lou et al., 2018).
+
+    Attributes:
+        B: Dense layer that learns basis signals of the input mixtures.
+
+        * N: Number of basis signals of the TasNet.
+        * L: Length of each segment in input mixtures of the TasNet.
+    """
+
     def __init__(self, param: TasNetParam, **kwargs):
         super(Decoder, self).__init__(name='Decoder', **kwargs)
         self.B = tf.keras.layers.Dense(param.L)
 
     def call(self, source_weights):
-        # (, C, K, N) -> (, C, K, L)
+        """Reconstructs waveform of sources from given weights.
+
+        Args:
+            source_weights:
+                Weights for C clean sources.
+                tf.Tensor of shape=(, C, K, L)
+
+        Returns:
+            estimated_sources:
+                Reconstructed C sources by using `source_weights` and `B`.
+                tf.Tensor of shape=(, C, K, N)
+        """
         return self.B(source_weights)
 
 
 class Separator(tf.keras.layers.Layer):
+    """Separation network of the TasNet (Luo et al., 2018)
+
+    In Separation Newtork, deep LSTM network is used. The directionality
+    (uni-/bi-) of each LSTM layer is depend on the `causality` of the TasNet.
+    Starting from the second LSTM layer, an identity skip connection is added
+    between every two LSTEM layers to enhance the gradinet flow and accelerate
+    the training process (p. 697). Separation network gets `mixture_weights`
+    from the Encoder, and returns `sources_weights` to the Decoder.
+
+    Attributes:
+        layer_normalization: Layer normalization layer.
+        C: Number of sources to separate.
+        lstm1~6: Uni-/Bi-directional LSTM layer.
+        skip_conntection: `Add` layer of the keras for `skip connection`.
+    """
+
     def __init__(self, param: TasNetParam, **kwargs):
         super(Separator, self).__init__(name='Separation', **kwargs)
 
@@ -66,6 +127,19 @@ class Separator(tf.keras.layers.Layer):
         self.permute = tf.keras.layers.Permute([2, 1, 3])
 
     def call(self, mixture_weights):
+        """Makes weights of C sources from mixture weights.
+
+        Args:
+            mixture_weights:
+                Weights for the `mixture_segments`.
+                tf.Tensor of shape=(, K, N)
+
+        Returns:
+            source_weights:
+                Weights for C clean sources.
+                tf.Tensor of shape=(, C, K, N)
+        """
+
         # (, K, N) -> (, K, N)
         normalized_weights = self.layer_normalization(mixture_weights)
 

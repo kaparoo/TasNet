@@ -1,6 +1,8 @@
 # **TaSNet: Time-domain Audio Separation Network**
 
-Tensorflow 2.x (with Keras API) Implementation of the TaSNet (Luo et al., 2018)
+[Tensorflow 2.x (with Keras API) Implementation of the TaSNet (Luo et al., 2018)][ieee_link]
+
+[ieee_link]: https://ieeexplore.ieee.org/document/8462116
 
 # **Training and Predicting**
 
