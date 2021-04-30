@@ -7,9 +7,9 @@ class Encoder(tf.keras.layers.Layer):
     """Encoder for mixture weight calculation (Lou et al., 2018).
 
     Attributes:
-        U: 1-D Convolution layer that learns N vectors with length L
+        U: Fully connected layer that learns N vectors with length L
            with `relu` activation.
-        V: 1-D Convolution layer that learns N vectors with lenght L
+        V: Fully connected layer that learns N vectors with lenght L
            with `sigmoid` activation.
         gating: Elementwise muliplication layer that multiply
                 results of U and V elementwisely for `gating mechanism`.
@@ -20,12 +20,8 @@ class Encoder(tf.keras.layers.Layer):
 
     def __init__(self, param: TasNetParam, **kwargs):
         super(Encoder, self).__init__(name='Encoder', **kwargs)
-        self.U = tf.keras.layers.Conv1D(filters=param.N,
-                                        kernel_size=1,
-                                        activation='relu')
-        self.V = tf.keras.layers.Conv1D(filters=param.N,
-                                        kernel_size=1,
-                                        activation='sigmoid')
+        self.U = tf.keras.layers.Dense(units=param.N, activation='relu')
+        self.V = tf.keras.layers.Dense(units=param.N, activation='sigmoid')
         self.gating = tf.keras.layers.Multiply()
 
     def call(self, mixture_segments):
@@ -48,7 +44,7 @@ class Decoder(tf.keras.layers.Layer):
     """Decoder for waveform reconstruction (Lou et al., 2018).
 
     Attributes:
-        B: Dense layer that learns basis signals of the input mixtures.
+        B: Fully connected layer that learns N basis signals of the input mixtures.
 
         * N: Number of basis signals of the TasNet.
         * L: Length of each segment in input mixtures of the TasNet.

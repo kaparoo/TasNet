@@ -7,6 +7,7 @@
 
 # train
 train*/
+train_log*
 
 # predict
 *.wav
