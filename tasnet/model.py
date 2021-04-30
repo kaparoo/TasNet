@@ -19,8 +19,10 @@ class TasNet(tf.keras.Model):
         return estimated_sources  # (, K, L) -> (, C, K, L)
 
     @staticmethod
-    def make(param: TasNetParam, optimizer='adam'):
+    def make(param: TasNetParam,
+             optimizer: tf.keras.optimizers.Optimizer = tf.keras.optimizers.Adam(clipnorm=5),
+	     loss: tf.keras.losses.Loss = SDR()):
         model = TasNet(param)
-        model.compile(optimizer=optimizer, loss=SDR())
+        model.compile(optimizer=optimizer, loss=loss)
         model.build(input_shape=(None, param.K, param.L))
         return model
