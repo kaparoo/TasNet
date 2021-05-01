@@ -25,6 +25,7 @@ flags.DEFINE_integer('num_samples', 100, 'Number of samples.')
 flags.DEFINE_integer('max_decoded', 100,
                      'The Maximum number of decoded songs in the memory.')
 flags.DEFINE_integer('batch_size', 400, 'Number of batches for each epoch.')
+flags.DEFINE_bool('summary', False, 'Flag for summary of the model.')
 
 
 def get_tasnet_param() -> TasNetParam:
@@ -43,6 +44,11 @@ def get_dataset_param() -> DatasetParam:
 
 def main(argv):
     tasnet = TasNet.make(get_tasnet_param())
+
+    if FLAGS.summary:
+        tasnet.summary()
+        return
+
     dataset = Dataset(get_dataset_param())
     checkpoint_dir = FLAGS.checkpoint
 
