@@ -154,10 +154,8 @@ class Separator(tf.keras.layers.Layer):
 
         # (, K, C*N) -> (, K, C, N)
         source_masks = self.reshape_mask(fc_outputs)
-        # (, K, C, N) -> (, K, N*c)
-        source_masks = self.softmax(fc_outputs)
-        # (, K, C*N) -> (, K, C, N)
-        source_masks = self.reshape_mask(fc_outputs)
+        # (, K, C, N) -> (, K, C, N)
+        source_masks = self.softmax(source_masks)
 
         # (, K, N) -> (, K, C*N)
         mixture_weights = self.concat_weights(
