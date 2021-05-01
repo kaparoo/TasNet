@@ -113,7 +113,8 @@ class Separator(tf.keras.layers.Layer):
         self.fc_layer = tf.keras.layers.Dense(param.N * param.C)
         self.reshape_mask = tf.keras.layers.Reshape(
             target_shape=[param.K, param.C, param.N])
-        self.softmax = tf.keras.layers.Softmax(axis=-2)  # axis: C
+        # self.softmax = tf.keras.layers.Softmax(axis=-2)  # axis: C
+        self.sigmoid = tf.keras.activations.sigmoid
 
         self.concat_weights = tf.keras.layers.concatenate
         self.reshape_weights = tf.keras.layers.Reshape(
@@ -155,7 +156,8 @@ class Separator(tf.keras.layers.Layer):
         # (, K, C*N) -> (, K, C, N)
         source_masks = self.reshape_mask(fc_outputs)
         # (, K, C, N) -> (, K, C, N)
-        source_masks = self.softmax(source_masks)
+        # source_masks = self.softmax(source_masks)
+        source_masks = self.sigmoid(source_masks)
 
         # (, K, N) -> (, K, C*N)
         mixture_weights = self.concat_weights(
